@@ -17,14 +17,14 @@ WhatsApp
 The handler supports a Twenty phone-field object containing values such as:
 
 ```text
-primaryPhoneNumber: 8885344518
+primaryPhoneNumber: 8187030758
 primaryPhoneCallingCode: +91
 ```
 
 It normalizes that value to:
 
 ```text
-918885344518
+918187030758
 ```
 
 If the primary number is empty or invalid, the action returns/throws `INVALID_RECIPIENT` depending on `continueOnError`.
