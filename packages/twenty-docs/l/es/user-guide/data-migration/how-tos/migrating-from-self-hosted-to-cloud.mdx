@@ -1,0 +1,173 @@
+---
+title: Migración de autogestionado a la nube
+description: Guía paso a paso para migrar tu instancia autogestionada de Twenty a Twenty Cloud.
+---
+
+## Resumen
+
+Esta guía te acompaña en la migración de tus datos desde una instancia autogestionada de Twenty a Twenty Cloud. El proceso implica configurar tu espacio de trabajo en la nube, exportar tus datos y volver a importarlos.
+
+<Note>Las vistas, los flujos de trabajo y los roles deben recrearse manualmente después de la migración. Planifica tiempo para este trabajo de configuración.</Note>
+
+## Paso 1: Crea tu espacio de trabajo en la nube
+
+1. Ve a [app.twenty.com](https://app.twenty.com) y crea un nuevo espacio de trabajo
+2. Completa el asistente de configuración inicial
+3. Anota la URL de tu nuevo espacio de trabajo
+
+## Paso 2: Recrea tu modelo de datos
+
+Antes de importar datos, recrea tus objetos y campos personalizados:
+
+1. Ve a **Ajustes → Modelo de datos** en tu instancia en la nube
+2. Crea objetos personalizados que coincidan con tu configuración autogestionada
+3. Añade campos personalizados a los objetos estándar y personalizados
+4. Configura los ajustes de los campos (único, obligatorio, etc.)
+
+<Note>Toma capturas de pantalla de tu modelo de datos autogestionado como referencia, o mantén ambas instancias abiertas en paralelo.</Note>
+
+## Paso 3: Invita a todos los usuarios
+
+<Warning>
+**Importante: invita a los usuarios ANTES de importar datos.**
+
+Los usuarios deben aceptar sus invitaciones antes de que importes cualquier registro que los referencie (como los campos de propietario de la cuenta). Si los usuarios aún no existen, esas relaciones no se podrán mapear.
+</Warning>
+
+1. Ve a **Ajustes → Miembros** en tu instancia en la nube
+2. Invita a todos los miembros del equipo que tenían cuentas en la instancia autogestionada
+3. **Espera a que todos acepten** su invitación
+4. Verifica que todos los usuarios aparezcan en tu lista de Miembros
+
+## Paso 4: Exporta datos desde la instancia autogestionada
+
+Exporta cada objeto desde tu instancia autogestionada:
+
+1. Navega a cada objeto (Empresas, Personas, Oportunidades, etc.)
+2. Configura la vista para mostrar **todas las columnas** que quieres migrar
+3. Haz clic en **⋮ → Exportar vista**
+4. Guarda cada archivo CSV con un nombre claro (p. ej., `companies-export.csv`)
+
+**Exporta en este orden** (como referencia al importar):
+
+1. Empresas
+2. Personas
+3. Oportunidades
+4. Objetos personalizados (siguiendo sus dependencias)
+5. Tareas, Notas
+
+## Paso 5: Actualiza las referencias a miembros del espacio de trabajo
+
+Los CSV exportados contienen IDs de usuario de tu instancia autogestionada. Estos ID no coincidirán con tu instancia en la nube, por lo que debes reemplazarlos por correos electrónicos.
+
+**Para cada archivo CSV con referencias a usuarios (propietario, asignado, etc.):**
+
+1. Abre el CSV en una aplicación de hojas de cálculo
+2. Añade una nueva columna junto a cada columna de ID de usuario (p. ej., `accountOwnerEmail` junto a `accountOwnerId`)
+3. Rellena la **dirección de correo electrónico** de cada usuario
+4. Puedes eliminar la columna de ID antigua o dejarla (se omitirá durante la importación)
+
+**Ejemplo:**
+
+Antes:
+
+```csv
+name,domain,accountOwnerId
+Acme Corp,https://acme.com,old-uuid-123
+```
+
+Después:
+
+```csv
+name,domain,accountOwnerEmail
+Acme Corp,https://acme.com,john@yourcompany.com
+```
+
+<Note>Usa las mismas direcciones de correo electrónico que los usuarios usaron para aceptar la invitación a su espacio de trabajo en la nube.</Note>
+
+## Paso 6: Planifica el orden de importación
+
+Importa los archivos en el orden correcto para mantener las relaciones:
+
+1. **Empresas** primero (sin dependencias)
+2. **Personas** en segundo lugar (enlazadas a Empresas)
+3. **Oportunidades** en tercer lugar (enlazadas a Empresas y Personas)
+4. **Objetos personalizados** (siguiendo sus dependencias)
+5. **Tareas y Notas** al final (enlazadas a otros registros)
+
+Consulta [Cómo importar relaciones](/l/es/user-guide/data-migration/how-tos/import-relations-between-objects-via-csv) para obtener detalles sobre cómo mantener las relaciones.
+
+## Paso 7: Importa a la nube
+
+Para cada archivo CSV, en orden:
+
+1. Navega al objeto en tu instancia en la nube
+2. Haz clic en **⋮ → Importar registros**
+3. Sube el archivo CSV
+4. Asocia las columnas a los campos:
+   * Asocia las columnas de correo electrónico de usuario a los campos de relación correspondientes
+   * Asocia las demás columnas como de costumbre
+5. Revisa y corrige cualquier error
+6. Confirma la importación
+7. Verifica algunos registros antes de continuar con el siguiente archivo
+
+## Paso 8: Recrea la configuración
+
+Después de importar los datos, recrea manualmente:
+
+### Vistas
+
+* Recrea las vistas guardadas con filtros, ordenaciones y configuraciones de columnas
+* Configura cualquier vista de kanban o calendario
+
+### Flujos de trabajo
+
+* Recrea automatizaciones en **Ajustes → Flujos de trabajo**
+* Prueba cada flujo de trabajo antes de depender de él
+
+### Roles y permisos
+
+* Configura los roles en **Configuración → Miembros → Roles**
+* Asigna a los usuarios a los roles adecuados
+
+### Integraciones
+
+* Vuelve a conectar la sincronización de correo y calendario para cada usuario
+* Reconfigura cualquier integración de API con nuevas claves de API
+
+## Lista de verificación post-migración
+
+<Check>Todos los datos se importaron correctamente</Check>
+<Check>Las relaciones entre objetos funcionan correctamente</Check>
+<Check>Las asignaciones de usuarios (propietario, asignado) se mapearon correctamente</Check>
+<Check>Vistas recreadas</Check>
+<Check>Flujos de trabajo recreados y probados</Check>
+<Check>Roles y permisos configurados</Check>
+<Check>Sincronización de correo/calendario reconectada</Check>
+<Check>Integraciones de API actualizadas con nuevas claves</Check>
+
+## Preguntas frecuentes
+
+<AccordionGroup>
+  <Accordion title="¿Puedo migrar los flujos de trabajo automáticamente?">
+    Actualmente no. Los flujos de trabajo deben recrearse manualmente en tu instancia en la nube.
+  </Accordion>
+
+  <Accordion title="¿Qué pasa con los archivos adjuntos e imágenes?">
+    Los archivos adjuntos no están incluidos en las exportaciones CSV. Necesitarás volver a subir los archivos adjuntos manualmente, migrarlos mediante la API o contactar con nuestro equipo para obtener ayuda con migraciones grandes.
+  </Accordion>
+
+  <Accordion title="¿Puedo mantener ambas instancias en funcionamiento durante la migración?">
+    Sí, recomendamos mantener tu instancia autogestionada en funcionamiento hasta que hayas verificado que la migración a la nube está completa. Solo ten cuidado de no crear datos nuevos en ambos lugares.
+  </Accordion>
+
+  <Accordion title="¿Qué pasa si un usuario aún no ha aceptado su invitación?">
+    Los registros que hagan referencia a ese usuario fallarán al importar o la relación quedará vacía. Asegúrate de que todos los usuarios acepten las invitaciones antes de importar datos.
+  </Accordion>
+</AccordionGroup>
+
+## ¿Necesitas Ayuda?
+
+<Tip>
+  ¿Estás migrando un espacio de trabajo grande o complejo? [Encuentra un partner certificado de Twenty](https://twenty.com/partners/list?categories=HOSTING\&ref=docs-migrate-cloud) para encargarse de la migración de principio a fin. *(O involucra a nuestro equipo: [contact@twenty.com](mailto:contact@twenty.com).)*
+</Tip>

@@ -1,0 +1,433 @@
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+
+import { type Manifest } from 'twenty-shared/application';
+import { Repository } from 'typeorm';
+import { ALL_METADATA_NAME } from 'twenty-shared/metadata';
+import { FileFolder } from 'twenty-shared/types';
+import { isDefined } from 'twenty-shared/utils';
+import { PackageJson } from 'type-fest';
+import { v4 } from 'uuid';
+
+import { ApplicationRegistrationEntity } from 'src/engine/core-modules/application/application-registration/application-registration.entity';
+import { ApplicationRegistrationSourceType } from 'src/engine/core-modules/application/application-registration/enums/application-registration-source-type.enum';
+import { ApplicationManifestMigrationService } from 'src/engine/core-modules/application/application-manifest/application-manifest-migration.service';
+import { enrichApplicationManifestSyncError } from 'src/engine/core-modules/application/application-manifest/utils/enrich-application-manifest-sync-error.util';
+import { buildFromToAllUniversalFlatEntityMaps } from 'src/engine/core-modules/application/application-manifest/utils/build-from-to-all-universal-flat-entity-maps.util';
+import { ApplicationTranslationSyncService } from 'src/engine/core-modules/application/application-translation/application-translation-sync.service';
+import { getApplicationSubAllFlatEntityMaps } from 'src/engine/core-modules/application/application-manifest/utils/get-application-sub-all-flat-entity-maps.util';
+import { ApplicationEntity } from 'src/engine/core-modules/application/application.entity';
+import {
+  ApplicationException,
+  ApplicationExceptionCode,
+} from 'src/engine/core-modules/application/application.exception';
+import { ApplicationService } from 'src/engine/core-modules/application/application.service';
+import { type FlatApplication } from 'src/engine/core-modules/application/types/flat-application.type';
+import { FileStorageService } from 'src/engine/core-modules/file-storage/services/file-storage.service';
+import { LOGIC_FUNCTION_DRIVER_FACTORY_TOKEN } from 'src/engine/core-modules/logic-function/logic-function-drivers/constants/logic-function-driver-factory.token';
+import { type LogicFunctionDriverFactory } from 'src/engine/core-modules/logic-function/logic-function-drivers/logic-function-driver.factory';
+import { LogicFunctionExecutorService } from 'src/engine/core-modules/logic-function/logic-function-executor/logic-function-executor.service';
+import { createEmptyAllFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/constant/create-empty-all-flat-entity-maps.constant';
+import { getMetadataFlatEntityMapsKey } from 'src/engine/metadata-modules/flat-entity/utils/get-metadata-flat-entity-maps-key.util';
+import { WorkspaceCacheService } from 'src/engine/workspace-cache/services/workspace-cache.service';
+import { WorkspaceMigrationBuilderException } from 'src/engine/workspace-manager/workspace-migration/exceptions/workspace-migration-builder-exception';
+import { WorkspaceMigrationValidateBuildAndRunService } from 'src/engine/workspace-manager/workspace-migration/services/workspace-migration-validate-build-and-run-service';
+import { WorkspaceMigration } from 'src/engine/workspace-manager/workspace-migration/workspace-migration-builder/types/workspace-migration.type';
+import { streamToBuffer } from 'src/utils/stream-to-buffer';
+
+@Injectable()
+export class ApplicationSyncService {
+  private readonly logger = new Logger(ApplicationSyncService.name);
+
+  constructor(
+    private readonly applicationService: ApplicationService,
+    private readonly applicationManifestMigrationService: ApplicationManifestMigrationService,
+    private readonly workspaceMigrationValidateBuildAndRunService: WorkspaceMigrationValidateBuildAndRunService,
+    private readonly workspaceCacheService: WorkspaceCacheService,
+    private readonly fileStorageService: FileStorageService,
+    private readonly applicationTranslationSyncService: ApplicationTranslationSyncService,
+    @Inject(LOGIC_FUNCTION_DRIVER_FACTORY_TOKEN)
+    private readonly logicFunctionDriverFactory: LogicFunctionDriverFactory,
+    private readonly logicFunctionExecutorService: LogicFunctionExecutorService,
+    @InjectRepository(ApplicationRegistrationEntity)
+    private readonly appRegistrationRepository: Repository<ApplicationRegistrationEntity>,
+  ) {}
+
+  public async synchronizeFromManifest({
+    workspaceId,
+    manifest,
+    applicationRegistrationId,
+    dryRun = false,
+  }: {
+    workspaceId: string;
+    manifest: Manifest;
+    applicationRegistrationId?: string;
+    dryRun?: boolean;
+  }): Promise<{
+    workspaceMigration: WorkspaceMigration;
+    hasSchemaMetadataChanged: boolean;
+  }> {
+    const ownerFlatApplication: FlatApplication = dryRun
+      ? await this.resolveDryRunOwnerFlatApplication({ workspaceId, manifest })
+      : await this.syncApplication({
+          workspaceId,
+          manifest,
+          applicationRegistrationId,
+        });
+
+    let syncResult: {
+      workspaceMigration: WorkspaceMigration;
+      hasSchemaMetadataChanged: boolean;
+    };
+
+    try {
+      syncResult =
+        await this.applicationManifestMigrationService.syncMetadataFromManifest(
+          {
+            manifest,
+            workspaceId,
+            ownerFlatApplication,
+            dryRun,
+          },
+        );
+    } catch (error) {
+      throw enrichApplicationManifestSyncError({ error, manifest });
+    }
+
+    if (!dryRun && isDefined(ownerFlatApplication.applicationRegistrationId)) {
+      // Translation sync runs after the metadata migration is already applied
+      // and is non-critical to the application itself, so a failure here must
+      // never abort an otherwise successful install/sync. It is idempotent and
+      // self-heals on the next sync.
+      try {
+        await this.applicationTranslationSyncService.syncFromManifest({
+          applicationRegistrationId:
+            ownerFlatApplication.applicationRegistrationId,
+          translations: manifest.translations,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to sync application translations for registration ${ownerFlatApplication.applicationRegistrationId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Application sync from manifest ${dryRun ? 'plan computed (dry run)' : 'completed'}`,
+    );
+
+    return syncResult;
+  }
+
+  private async resolveDryRunOwnerFlatApplication({
+    workspaceId,
+    manifest,
+  }: {
+    workspaceId: string;
+    manifest: Manifest;
+  }): Promise<FlatApplication> {
+    const installedApplication =
+      await this.applicationService.findByUniversalIdentifier({
+        universalIdentifier: manifest.application.universalIdentifier,
+        workspaceId,
+      });
+
+    return (
+      installedApplication ??
+      this.buildVirtualDryRunFlatApplication({ manifest, workspaceId })
+    );
+  }
+
+  private buildVirtualDryRunFlatApplication({
+    manifest,
+    workspaceId,
+  }: {
+    manifest: Manifest;
+    workspaceId: string;
+  }): FlatApplication {
+    const now = new Date();
+
+    return {
+      id: v4(),
+      workspaceId,
+      universalIdentifier: manifest.application.universalIdentifier,
+      name: manifest.application.displayName,
+      description: manifest.application.description ?? null,
+      logo: manifest.application.logo ?? manifest.application.logoUrl ?? null,
+      logoFileId: null,
+      version: null,
+      sourceType: ApplicationRegistrationSourceType.LOCAL,
+      sourcePath: manifest.application.universalIdentifier,
+      packageJsonChecksum: null,
+      packageJsonFileId: null,
+      yarnLockChecksum: null,
+      yarnLockFileId: null,
+      availablePackages: {},
+      logicFunctionLayerId: null,
+      defaultRoleId: null,
+      defaultRole: null,
+      settingsCustomTabFrontComponentId: null,
+      canBeUninstalled: true,
+      autoUpgrade: false,
+      isSdkLayerStale: false,
+      sdkClientCoreChecksum: null,
+      applicationRegistrationId: null,
+      primaryPublicDomainId: null,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    };
+  }
+
+  // Registers the application + only the pre-install logic function in
+  // workspace metadata so the pre-install hook can resolve and execute it
+  // before the main synchronizeFromManifest runs the full migrations.
+  // No-op when the manifest does not declare a pre-install logic function.
+  public async preInstallSynchronizeFromManifest({
+    workspaceId,
+    manifest,
+    applicationRegistrationId,
+  }: {
+    workspaceId: string;
+    manifest: Manifest;
+    applicationRegistrationId?: string;
+  }): Promise<void> {
+    if (!isDefined(manifest.application.preInstallLogicFunction)) {
+      return;
+    }
+
+    const application = await this.syncApplication({
+      workspaceId,
+      manifest,
+      applicationRegistrationId,
+    });
+
+    const ownerFlatApplication: FlatApplication = application;
+
+    await this.applicationManifestMigrationService.syncPreInstallLogicFunctionFromManifest(
+      {
+        manifest,
+        workspaceId,
+        ownerFlatApplication,
+      },
+    );
+
+    this.logger.log('Pre-install sync from manifest completed');
+  }
+
+  private async syncApplication({
+    workspaceId,
+    manifest,
+    applicationRegistrationId,
+  }: {
+    workspaceId: string;
+    manifest: Manifest;
+    applicationRegistrationId?: string;
+  }): Promise<ApplicationEntity> {
+    const name = manifest.application.displayName;
+    const packageJson = JSON.parse(
+      (
+        await streamToBuffer(
+          await this.fileStorageService.readFile({
+            applicationUniversalIdentifier:
+              manifest.application.universalIdentifier,
+            fileFolder: FileFolder.Dependencies,
+            resourcePath: 'package.json',
+            workspaceId,
+          }),
+        )
+      ).toString('utf-8'),
+    ) as PackageJson;
+
+    const application = await this.applicationService.findOneApplicationOrThrow(
+      {
+        universalIdentifier: manifest.application.universalIdentifier,
+        workspaceId,
+      },
+    );
+
+    const resolvedRegistrationId =
+      applicationRegistrationId ?? application.applicationRegistrationId;
+
+    return await this.applicationService.update(application.id, {
+      name,
+      description: manifest.application.description,
+      logo: manifest.application.logo ?? manifest.application.logoUrl ?? null,
+      version: packageJson.version,
+      packageJsonChecksum: manifest.application.packageJsonChecksum,
+      yarnLockChecksum: manifest.application.yarnLockChecksum,
+      applicationRegistrationId: resolvedRegistrationId,
+      workspaceId,
+    });
+  }
+
+  public async uninstallApplication({
+    workspaceId,
+    applicationUniversalIdentifier,
+    shouldRunUninstallHook = true,
+  }: {
+    workspaceId: string;
+    applicationUniversalIdentifier: string;
+    shouldRunUninstallHook?: boolean;
+  }): Promise<WorkspaceMigration> {
+    const application = await this.applicationService.findOneApplicationOrThrow(
+      { universalIdentifier: applicationUniversalIdentifier, workspaceId },
+    );
+
+    if (!application.canBeUninstalled) {
+      throw new ApplicationException(
+        'This application cannot be uninstalled.',
+        ApplicationExceptionCode.FORBIDDEN,
+      );
+    }
+
+    if (shouldRunUninstallHook) {
+      await this.runUninstallHook({ application, workspaceId });
+    }
+
+    const flatEntityMapsCacheKeys = Object.values(ALL_METADATA_NAME).map(
+      getMetadataFlatEntityMapsKey,
+    );
+
+    const cacheResult = await this.workspaceCacheService.getOrRecompute(
+      workspaceId,
+      [...flatEntityMapsCacheKeys, 'featureFlagsMap'],
+    );
+
+    const { featureFlagsMap, ...fromAllFlatEntityMaps } = cacheResult;
+
+    const applicationFromAllFlatEntityMaps = getApplicationSubAllFlatEntityMaps(
+      {
+        applicationIds: [application.id],
+        fromAllFlatEntityMaps,
+      },
+    );
+
+    const fromToAllFlatEntityMaps = buildFromToAllUniversalFlatEntityMaps({
+      fromAllFlatEntityMaps: applicationFromAllFlatEntityMaps,
+      toAllUniversalFlatEntityMaps: createEmptyAllFlatEntityMaps(),
+    });
+
+    const validateAndBuildResult =
+      await this.workspaceMigrationValidateBuildAndRunService.validateBuildAndRunWorkspaceMigrationFromTo(
+        {
+          buildOptions: {
+            isSystemBuild: true,
+            inferDeletionFromMissingEntities: true,
+            applicationUniversalIdentifier,
+          },
+          fromToAllFlatEntityMaps,
+          workspaceId,
+          additionalCacheDataMaps: { featureFlagsMap },
+        },
+      );
+
+    if (validateAndBuildResult.status === 'fail') {
+      throw new WorkspaceMigrationBuilderException(
+        validateAndBuildResult,
+        'Validation errors occurred while uninstalling application',
+      );
+    }
+
+    await this.applicationService.delete(
+      applicationUniversalIdentifier,
+      workspaceId,
+    );
+
+    await this.cleanupApplicationRuntimeResources({
+      workspaceId,
+      applicationUniversalIdentifier,
+    });
+
+    return validateAndBuildResult.workspaceMigration;
+  }
+
+  // The uninstall hook must run before the deletion migration: once the
+  // migration is applied, the hook's logic function metadata, code, and the
+  // application's data are gone, so nothing can be executed anymore. It is
+  // best-effort cleanup: a failure must never prevent the application from
+  // being removed.
+  private async runUninstallHook({
+    application,
+    workspaceId,
+  }: {
+    application: ApplicationEntity;
+    workspaceId: string;
+  }): Promise<void> {
+    if (!isDefined(application.applicationRegistrationId)) {
+      return;
+    }
+
+    try {
+      const appRegistration = await this.appRegistrationRepository.findOne({
+        where: { id: application.applicationRegistrationId },
+      });
+
+      const uninstallLogicFunction =
+        appRegistration?.manifest?.application.uninstallLogicFunction;
+
+      if (!isDefined(uninstallLogicFunction)) {
+        return;
+      }
+
+      const { flatLogicFunctionMaps } =
+        await this.workspaceCacheService.getOrRecompute(workspaceId, [
+          'flatLogicFunctionMaps',
+        ]);
+
+      const flatLogicFunction =
+        flatLogicFunctionMaps.byUniversalIdentifier[
+          uninstallLogicFunction.universalIdentifier
+        ];
+
+      if (!isDefined(flatLogicFunction)) {
+        this.logger.warn(
+          `Uninstall logic function "${uninstallLogicFunction.universalIdentifier}" not found for application "${application.universalIdentifier}"; skipping hook`,
+        );
+
+        return;
+      }
+
+      this.logger.log(
+        `Executing uninstall hook for app ${application.universalIdentifier}`,
+      );
+
+      const result = await this.logicFunctionExecutorService.execute({
+        logicFunctionId: flatLogicFunction.id,
+        workspaceId,
+        payload: { version: application.version ?? undefined },
+      });
+
+      if (isDefined(result.error)) {
+        this.logger.warn(
+          `Uninstall hook failed for application ${application.universalIdentifier}: ${result.error.errorMessage}`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Uninstall hook failed for application ${application.universalIdentifier}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  private async cleanupApplicationRuntimeResources({
+    workspaceId,
+    applicationUniversalIdentifier,
+  }: {
+    workspaceId: string;
+    applicationUniversalIdentifier: string;
+  }): Promise<void> {
+    try {
+      const driver = this.logicFunctionDriverFactory.getCurrentDriver();
+
+      await driver.deleteApplicationResources({
+        workspaceId,
+        applicationUniversalIdentifier,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to clean up runtime resources for application ${applicationUniversalIdentifier} in workspace ${workspaceId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+}

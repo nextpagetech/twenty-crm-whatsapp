@@ -1,0 +1,56 @@
+{
+  "name": "@nextpagetech/twenty-whatsapp",
+  "version": "0.1.0",
+  "description": "WhatsApp Business workflow actions for Twenty CRM",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Next Page Technologies Pvt. Ltd.",
+    "email": "hello@nextpagetechnologies.com",
+    "url": "https://www.nextpagetechnologies.com"
+  },
+  "homepage": "https://www.nextpagetechnologies.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nextpagetech/twentycrm-npt.git",
+    "directory": "packages/twenty-apps/public/whatsapp"
+  },
+  "bugs": {
+    "url": "https://github.com/nextpagetech/twentycrm-npt/issues"
+  },
+  "engines": {
+    "node": "^24.5.0",
+    "npm": "please-use-yarn",
+    "yarn": ">=4.0.2",
+    "twenty": ">=2.16.0"
+  },
+  "keywords": [
+    "twenty-app",
+    "twenty-crm",
+    "whatsapp",
+    "whatsapp-business",
+    "meta-cloud-api",
+    "workflow"
+  ],
+  "packageManager": "yarn@4.13.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "twenty": "twenty",
+    "lint": "oxlint -c .oxlintrc.json .",
+    "lint:fix": "oxlint --fix -c .oxlintrc.json .",
+    "typecheck": "tsgo --noEmit -p tsconfig.spec.json",
+    "test": "yarn test:unit",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:watch": "vitest --config vitest.unit.config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "@typescript/native-preview": "^7.0.0-dev.20260116.1",
+    "oxlint": "^0.16.0",
+    "twenty-sdk": "^2.16.0",
+    "typescript": "^5.9.3",
+    "vite-tsconfig-paths": "^4.2.1",
+    "vitest": "^4.0.0"
+  }
+}

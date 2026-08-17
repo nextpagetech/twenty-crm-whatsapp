@@ -1,0 +1,15 @@
+export enum FileFolder {
+  CorePicture = 'core-picture',
+  AgentChat = 'agent-chat',
+  BuiltLogicFunction = 'built-logic-function',
+  BuiltFrontComponent = 'built-front-component',
+  PublicAsset = 'public-asset',
+  Source = 'source',
+  FilesField = 'files-field',
+  Dependencies = 'dependencies',
+  Workflow = 'workflow',
+  EmailAttachment = 'email-attachment',
+  AppTarball = 'app-tarball',
+  GeneratedSdkClient = 'generated-sdk-client',
+  Dpa = 'dpa',
+}
