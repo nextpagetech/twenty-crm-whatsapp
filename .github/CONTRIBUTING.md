@@ -1,66 +1,53 @@
-# Contributing to Twenty
+# Contributing to Twenty CRM + WhatsApp
 
-Thanks for considering contributing to Twenty!
+Thank you for contributing to this repository maintained by Next Page Technologies Pvt. Ltd.
 
-Please make sure to go through the [documentation](https://docs.twenty.com) before.
+## Before you start
 
-<br>
+- Use GitHub Issues for reproducible bugs and concrete feature requests.
+- Use GitHub Discussions for questions, ideas, provider proposals, and general community support.
+- Do not post secrets, access tokens, customer data, production IDs, or private phone numbers.
+- Security-sensitive reports must follow `.github/SECURITY.md` and must not be opened publicly.
 
+## Development
 
-## Good first issues
+For WhatsApp integration changes, work from:
 
-Good first issues are a great way to start contributing and get familiar with the codebase. You can find them on by filtering on the [good first issue](https://github.com/twentyhq/twenty/labels/good%20first%20issue) label.
-
-## Issue assignment
-
-To avoid conflicts, we follow these guidelines:
-
-1. For `Good First Issue` and `Experienced Contributor` issues without `size: long` labels, we'll merge the first PRs that meet our [code quality standards](https://docs.twenty.com/developers). **We don't assign contributors to these issues**. For `priority: high` issues, our core team will step in within days if no adequate contributions are received.
-2. For `size: long` Issues, assigned contributors have one week to submit their first draft PR.
-
-## How to Contribute
-
-1. **Fork the Repository:** Click on the 'Fork' button in the upper right corner of the repository's GitHub page. This will create a copy of the repository in your GitHub account.
-
-2. **Clone the Repository:** Clone your forked repository to your local machine using `git clone`.
-
-```shell
-git clone https://github.com/yourusername/twenty.git
-cd twenty
+```text
+packages/twenty-apps/public/whatsapp
 ```
 
-3. **Create a New Branch:** Create a new branch for your changes instead of using the main branch.
+Run:
 
-```shell
-git checkout -b your-branch-name
+```bash
+corepack enable
+yarn install --immutable
+yarn lint
+yarn typecheck
+yarn test:unit
 ```
 
-4. **Make Changes:** Make your desired changes and ensure that your code adheres to Twenty's coding standards.
+When workflow schemas, app configuration, dynamic-field behavior, or provider execution changes, also perform a real Twenty runtime test against a development instance.
 
+## Pull requests
 
-5. **Test Locally:** Test your changes locally to ensure they work as expected.
+1. Create a branch from `main`.
+2. Keep the change focused.
+3. Add or update tests for behavior changes.
+4. Update documentation and changelog entries when user-visible behavior changes.
+5. Open a pull request into `main`.
+6. Resolve review conversations and obtain the required approval before merge.
 
+The protected `main` branch requires pull requests and review before merge.
 
-6. **Commit Changes:** Commit your changes with a clear and concise commit message.
+## Licensing and attribution
 
-```shell
-git commit -m "Add your detailed description here"
-```
+This repository contains original Twenty CRM source under its existing licensing terms and independently authored WhatsApp integration code under the package-local Apache-2.0 license where applicable.
 
-7. **Push Changes:** Push your changes to your forked repository.
+Do not remove or alter upstream Twenty copyright/license notices, and do not relicense Enterprise-marked files.
 
-```shell
-git push origin your-branch-name
-```
+Contributions to the WhatsApp package should be compatible with its Apache-2.0 licensing. Contributions to other parts of the repository remain subject to the licensing terms applicable to those files.
 
-8. **Create a Pull Request:** Go to the original Twenty repository and create a pull request. Please provide a detailed description of your changes. Submitting a PR means you agree to the CLA.
+## Upstream Twenty issues
 
-9. **Code Review:** Your pull request will undergo a code review.
-
-10. **Merge:** Once approved, maintainers will merge your pull request into the main repository.
-
-
-
-## Reporting Issues
-
-If you face any issues or have suggestions, please feel free to [create an issue on Twenty's GitHub repository](https://github.com/twentyhq/twenty/issues/new). Please provide as much detail as possible.
+If a problem is clearly reproducible in unmodified upstream Twenty, please also check the upstream Twenty project. Issues specific to this distribution or the WhatsApp integration belong in this repository.

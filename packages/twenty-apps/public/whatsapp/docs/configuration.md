@@ -75,7 +75,7 @@ Example `SEND_TEXT` response:
   "provider": "meta",
   "operation": "SEND_TEXT",
   "messageId": "wamid.example-message-id",
-  "recipientPhoneNumber": "15551234567",
+  "recipientPhoneNumber": "918187030758",
   "providerStatus": "accepted"
 }
 ```

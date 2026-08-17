@@ -4,7 +4,7 @@ Assume Meta has approved a template named `appointment_reminder` in `en_US` with
 
 ```text
 Operation: SEND_TEMPLATE
-Recipient phone number: +91 88853 44518
+Recipient phone number: 918187030758
 Template name: appointment_reminder
 Language code: en_US
 Body parameters:

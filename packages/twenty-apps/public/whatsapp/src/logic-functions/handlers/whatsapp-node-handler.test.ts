@@ -48,7 +48,7 @@ describe('whatsappNodeHandler', () => {
         ok: true,
         status: 200,
         data: {
-          contacts: [{ wa_id: '918885344518' }],
+          contacts: [{ wa_id: '918187030758' }],
           messages: [{ id: 'wamid.text' }],
         },
       }),
@@ -58,7 +58,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEXT',
-        recipientPhoneNumber: '+91 88853 44518',
+        recipientPhoneNumber: '918187030758',
         messageBody: 'Hello from Twenty',
         previewUrl: true,
       }),
@@ -73,7 +73,7 @@ describe('whatsappNodeHandler', () => {
     const payload = JSON.parse(String(request.body));
     expect(payload).toMatchObject({
       messaging_product: 'whatsapp',
-      to: '918885344518',
+      to: '918187030758',
       type: 'text',
       text: { preview_url: true, body: 'Hello from Twenty' },
     });
@@ -85,7 +85,7 @@ describe('whatsappNodeHandler', () => {
         ok: true,
         status: 200,
         data: {
-          contacts: [{ wa_id: '918885344518' }],
+          contacts: [{ wa_id: '918187030758' }],
           messages: [{ id: 'wamid.body-parameter' }],
         },
       }),
@@ -94,7 +94,7 @@ describe('whatsappNodeHandler', () => {
 
     await whatsappNodeHandler({
       operation: 'SEND_TEMPLATE',
-      recipientPhoneNumber: '+91 88853 44518',
+      recipientPhoneNumber: '918187030758',
       templateName: 'welcome_customer',
       languageCode: 'en_US',
       templateBodyParameters: [45334],
@@ -116,7 +116,7 @@ describe('whatsappNodeHandler', () => {
         ok: true,
         status: 200,
         data: {
-          contacts: [{ wa_id: '918885344518' }],
+          contacts: [{ wa_id: '918187030758' }],
           messages: [{ id: 'wamid.otp' }],
         },
       }),
@@ -125,7 +125,7 @@ describe('whatsappNodeHandler', () => {
 
     await whatsappNodeHandler({
       operation: 'SEND_TEMPLATE',
-      recipientPhoneNumber: '918885344518',
+      recipientPhoneNumber: '918187030758',
       templateName: 'otp_verification_1',
       languageCode: 'en',
       templateBodyParameters: [45334],
@@ -152,7 +152,7 @@ describe('whatsappNodeHandler', () => {
         ok: true,
         status: 200,
         data: {
-          contacts: [{ wa_id: '918885344518' }],
+          contacts: [{ wa_id: '918187030758' }],
           messages: [{ id: 'wamid.phone-object' }],
         },
       }),
@@ -162,7 +162,7 @@ describe('whatsappNodeHandler', () => {
     await whatsappNodeHandler({
       operation: 'SEND_TEMPLATE',
       recipientPhoneNumber: {
-        primaryPhoneNumber: '8885344518',
+        primaryPhoneNumber: '8187030758',
         primaryPhoneCallingCode: '+91',
       },
       templateName: 'welcome_customer',
@@ -170,7 +170,7 @@ describe('whatsappNodeHandler', () => {
 
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const payload = JSON.parse(String(request.body));
-    expect(payload.to).toBe('918885344518');
+    expect(payload.to).toBe('918187030758');
   });
 
   it('returns provider diagnostics for a structured Meta error', async () => {
@@ -194,7 +194,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEMPLATE',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         templateName: 'wrong_template_name',
         continueOnError: true,
       }),
@@ -224,7 +224,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEXT',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         messageBody: 'Hello',
         continueOnError: true,
       }),
@@ -238,7 +238,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEMPLATE',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         templateName: 'welcome_customer',
         templateBodyParameters: [null],
         continueOnError: true,
@@ -277,7 +277,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEXT',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         messageBody: 'Hello',
         continueOnError: true,
       }),
@@ -295,7 +295,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEXT',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         messageBody: 'Hello',
         continueOnError: true,
       }),
@@ -316,7 +316,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEXT',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         messageBody: 'Hello',
         continueOnError: true,
       }),
@@ -339,7 +339,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEXT',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         messageBody: 'Hello',
         continueOnError: true,
       }),
@@ -357,7 +357,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEXT',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         messageBody: 'Hello',
         continueOnError: true,
       }),
@@ -383,7 +383,7 @@ describe('whatsappNodeHandler', () => {
     await expect(
       whatsappNodeHandler({
         operation: 'SEND_TEMPLATE',
-        recipientPhoneNumber: '918885344518',
+        recipientPhoneNumber: '918187030758',
         templateName: 'wrong_template_name',
       }),
     ).rejects.toThrow('Template name does not exist');
