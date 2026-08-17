@@ -1,6 +1,12 @@
-/.github/              @charlesBochet @FelixMalfait @Weiko @prastoin @bosiraphael @etiennejouan @ijreilly @martmull @thomtrp
-/.github/CODEOWNERS    @charlesBochet @FelixMalfait @Weiko @prastoin @bosiraphael @etiennejouan @ijreilly @martmull @thomtrp
-/.github/workflows/    @charlesBochet @FelixMalfait @Weiko @prastoin @bosiraphael @etiennejouan @ijreilly @martmull @thomtrp
-/.github/actions/      @charlesBochet @FelixMalfait @Weiko @prastoin @bosiraphael @etiennejouan @ijreilly @martmull @thomtrp
-/.github/dependabot.yml @charlesBochet @FelixMalfait @Weiko @prastoin @bosiraphael @etiennejouan @ijreilly @martmull @thomtrp
-/.yarnrc.yml           @charlesBochet @FelixMalfait @Weiko @prastoin @bosiraphael @etiennejouan @ijreilly @martmull @thomtrp
+# Repository governance
+* @nextpagetech
+
+# GitHub configuration and automation
+/.github/ @nextpagetech
+/.github/CODEOWNERS @nextpagetech
+/.github/workflows/ @nextpagetech
+/.github/actions/ @nextpagetech
+/.github/dependabot.yml @nextpagetech
+
+# WhatsApp integration
+/packages/twenty-apps/public/whatsapp/ @nextpagetech

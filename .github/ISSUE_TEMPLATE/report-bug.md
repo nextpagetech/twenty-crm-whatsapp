@@ -1,36 +1,43 @@
 ---
 name: Report a bug
-about: Report a bug or a functional regression
-title: 'Ex: In DarkMode, a blank square appears in bottom right corner while scrolling'
+about: Report a reproducible problem in this distribution or the WhatsApp integration
+title: ''
 labels: ['type: bug']
 assignees: ''
-
 ---
 
-## Bug Description
+## Summary
 
-A clear and concise description of what the current behavior is.
-Please also add **screenshots** of the existing application.
+Describe the problem clearly and concisely.
 
-**Example:** 
-```
-In DarkMode, when scrollbar are displayed (for example on Companies page, with enough companies in the list), we see a blank square in the bottom right corner
-[screenshot]
-```
+## Environment
+
+- Twenty version:
+- Repository commit/tag:
+- WhatsApp app version:
+- Provider: Meta WhatsApp Cloud API / other
+- Browser/runtime if relevant:
+
+## Steps to reproduce
+
+1.
+2.
+3.
 
 ## Expected behavior
 
-A clear and concise description of what the expected behavior is.
+What should have happened?
 
-**Example:** 
-```
-The blank square should be transparent (invisible)
-```
+## Actual behavior
 
-## Technical inputs
+What happened instead?
 
-**Example:** 
-```
-- We are displaying custom scrollbars that disappear when the user is not scrolling. See ScrollWrapper.
-- Probably fixable with CSS
-```
+## Sanitized diagnostics
+
+Include relevant logs, workflow output, `errorCode`, HTTP status, provider error type/subcode, or trace ID if available.
+
+Do **not** include access tokens, customer data, production phone numbers, or other secrets.
+
+## Screenshots
+
+Add sanitized screenshots if they materially help reproduce the issue.

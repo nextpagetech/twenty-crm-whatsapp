@@ -1,0 +1,46 @@
+name: WhatsApp app CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/twenty-apps/public/whatsapp/**'
+      - '.github/workflows/whatsapp-app-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/twenty-apps/public/whatsapp/**'
+      - '.github/workflows/whatsapp-app-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/twenty-apps/public/whatsapp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.5.0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Unit tests
+        run: yarn test:unit
