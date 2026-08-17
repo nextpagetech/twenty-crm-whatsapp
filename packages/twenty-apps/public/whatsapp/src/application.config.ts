@@ -24,7 +24,7 @@ export default defineApplication({
   author: 'Next Page Technologies Pvt. Ltd.',
   category: 'Communication',
   websiteUrl: 'https://www.nextpagetechnologies.com',
-  issueReportUrl: 'https://github.com/nextpagetech/twentycrm-npt/issues',
+  issueReportUrl: 'https://github.com/nextpagetech/twenty-crm-whatsapp/issues',
   emailSupport: 'hello@nextpagetechnologies.com',
   applicationVariables: {
     WHATSAPP_ACCESS_TOKEN: {

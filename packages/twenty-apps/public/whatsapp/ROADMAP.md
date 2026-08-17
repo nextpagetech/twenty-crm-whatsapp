@@ -13,14 +13,16 @@ This roadmap is directional and does not promise release dates.
 - [x] Structured provider errors
 - [x] Provider abstraction
 - [x] Unit-test baseline
+- [x] Functional/developer documentation baseline
+- [x] Example workflows
 
 ## Near term
 
-- [ ] CI validation on every contribution
+- [ ] Re-establish repository CI validation after public-repository migration
 - [ ] Media/image/document messages
-- [ ] Improved provider retry guidance
-- [ ] Compatibility matrix for tested Twenty releases
-- [ ] Example workflows and screenshots
+- [x] Retryability and provider-error guidance
+- [ ] Compatibility matrix for runtime-tested Twenty releases
+- [ ] Screenshots/demo assets
 
 ## Messaging lifecycle
 

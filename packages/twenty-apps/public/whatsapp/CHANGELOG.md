@@ -11,6 +11,8 @@ All notable changes to this package are documented here.
 - Improved Meta API response parsing and structured diagnostics.
 - Standardized Next Page Technologies attribution and support contact details.
 - Changed package license declaration to Apache-2.0.
+- Updated repository metadata and issue links for `nextpagetech/twenty-crm-whatsapp`.
+- Expanded functional/developer documentation with installation verification, response contracts, success/error examples and the complete integration error catalogue.
 
 ### Added
 

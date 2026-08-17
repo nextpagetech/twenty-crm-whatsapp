@@ -2,7 +2,34 @@
 
 Open-source WhatsApp Business workflow actions for Twenty CRM, developed and maintained by **Next Page Technologies Pvt. Ltd.**
 
-The app currently supports the **Meta WhatsApp Cloud API** and adds a native WhatsApp workflow action for sending free-form text messages and approved template messages. The provider layer is intentionally separated so additional providers such as Twilio can be added later without changing the workflow contract.
+The app currently supports the **Meta WhatsApp Cloud API** and adds a native WhatsApp workflow action for sending free-form text messages and approved template messages. The provider layer is separated so additional providers can be implemented later without coupling provider-specific HTTP behavior to the Twenty workflow contract.
+
+## What it does
+
+```text
+Twenty Workflow
+      |
+      v
+WhatsApp Action
+      |
+      +---- SEND_TEXT
+      |
+      +---- SEND_TEMPLATE
+      |
+      v
+WhatsAppProvider interface
+      |
+      v
+Meta WhatsApp Cloud API
+      |
+      v
+Structured success/error output
+      |
+      v
+Next Twenty workflow step
+```
+
+The integration lets a Twenty workflow send WhatsApp messages using static values or dynamic values resolved from Twenty records and previous workflow steps.
 
 ## Project metadata
 
@@ -11,11 +38,12 @@ The app currently supports the **Meta WhatsApp Cloud API** and adds a native Wha
 | Package | `@nextpagetech/twenty-whatsapp` |
 | Current version | `0.1.0` |
 | Status | Pre-1.0 / active development |
+| Repository | `nextpagetech/twenty-crm-whatsapp` |
 | Maintainer | Next Page Technologies Pvt. Ltd. |
 | Website | https://www.nextpagetechnologies.com |
 | Support & customization | hello@nextpagetechnologies.com |
 | WhatsApp / Phone | +91 8187030758 |
-| License | Apache-2.0 |
+| Package license | Apache-2.0 |
 
 ## Features
 
@@ -30,7 +58,14 @@ The app currently supports the **Meta WhatsApp Cloud API** and adds a native Wha
 - Structured provider errors with retryability information.
 - Meta error code, type, subcode and trace ID when available.
 - Optional `continueOnError` behavior.
-- Provider abstraction prepared for future Twilio/360dialog/Gupshup implementations.
+- Provider abstraction prepared for future providers.
+
+## Supported operations
+
+| Operation | Purpose | Required values |
+| --- | --- | --- |
+| `SEND_TEXT` | Send a free-form text message when permitted by WhatsApp Business rules | Recipient phone number, message body |
+| `SEND_TEMPLATE` | Send a Meta-approved WhatsApp template | Recipient phone number, template name |
 
 ## Current providers
 
@@ -55,7 +90,7 @@ The app currently supports the **Meta WhatsApp Cloud API** and adds a native Wha
 ## Requirements
 
 - Twenty CRM with app and logic-function support.
-- Twenty `>= 2.16.0` (declared compatibility floor; verify the exact deployed version before production use).
+- Twenty `>=2.16.0` as the declared compatibility floor.
 - Node.js `24.5+`.
 - Yarn `4+`.
 - Meta developer account and WhatsApp Business application.
@@ -63,23 +98,11 @@ The app currently supports the **Meta WhatsApp Cloud API** and adds a native Wha
 - WhatsApp phone number ID.
 - Approved Meta templates for template sends.
 
-## Configuration
+The Twenty version declaration is a compatibility floor, not a claim that every later release has been runtime-tested. Record the exact Twenty version used for production verification before release.
 
-Configure these Twenty application variables:
+## Installation
 
-| Variable | Required | Secret | Description |
-| --- | --- | --- | --- |
-| `WHATSAPP_ACCESS_TOKEN` | Yes | Yes | Meta WhatsApp Cloud API access token. |
-| `WHATSAPP_PHONE_NUMBER_ID` | Yes | No | Meta phone number ID used to send messages. |
-| `WHATSAPP_API_VERSION` | No | No | Meta Graph API version. Defaults to `v23.0`. |
-
-Never commit real tokens, customer phone numbers or production configuration.
-
-See [Configuration](docs/configuration.md) and [Meta WhatsApp setup](docs/meta-whatsapp-setup.md) for details.
-
-## Local development
-
-From this package directory:
+From `packages/twenty-apps/public/whatsapp`:
 
 ```bash
 corepack enable
@@ -89,18 +112,36 @@ yarn typecheck
 yarn test:unit
 ```
 
-Connect the Twenty CLI to a development server:
+Connect the Twenty CLI to a development Twenty instance:
 
 ```bash
 yarn twenty remote add --api-url https://your-twenty-server.example.com --as development
 yarn twenty dev
 ```
 
-One-time sync:
+For a one-time sync:
 
 ```bash
 yarn twenty dev --once
 ```
+
+After the app is synced/installed, open the installed app's application-variable settings in Twenty and configure the required Meta values before running a workflow.
+
+See [Installation](docs/installation.md) for the full verification checklist.
+
+## Configuration
+
+Configure these Twenty application variables in the installed app's application-variable settings:
+
+| Variable | Required | Secret | Description |
+| --- | --- | --- | --- |
+| `WHATSAPP_ACCESS_TOKEN` | Yes | Yes | Meta WhatsApp Cloud API access token. |
+| `WHATSAPP_PHONE_NUMBER_ID` | Yes | No | Meta phone number ID used to send messages. |
+| `WHATSAPP_API_VERSION` | No | No | Meta Graph API version. Defaults to `v23.0`. |
+
+Never commit real access tokens, production IDs, customer phone numbers or production configuration.
+
+See [Configuration](docs/configuration.md) and [Meta WhatsApp setup](docs/meta-whatsapp-setup.md) for details.
 
 ## Workflow usage
 
@@ -111,12 +152,11 @@ In Twenty:
 3. Select **WhatsApp**.
 4. Choose `SEND_TEXT` or `SEND_TEMPLATE`.
 5. Map the recipient and message/template values.
-6. Test with a Meta test recipient.
-7. Activate the workflow after verifying the response.
+6. Test with a Meta test recipient or another approved test setup.
+7. Verify the structured action output.
+8. Activate the workflow only after validation.
 
-For complete field behavior and examples, see [Workflow usage](docs/workflow-usage.md) and [Examples](examples/README.md).
-
-### SEND_TEXT
+### `SEND_TEXT`
 
 Required:
 
@@ -130,7 +170,7 @@ Optional:
 
 Free-form messaging remains subject to Meta's WhatsApp Business messaging-window and policy rules.
 
-### SEND_TEMPLATE
+### `SEND_TEMPLATE`
 
 Required:
 
@@ -139,7 +179,7 @@ Required:
 
 Optional:
 
-- Language code (defaults to `en_US`).
+- Language code; defaults to `en_US`.
 - Header parameters.
 - Body parameters.
 - URL or quick-reply button parameters.
@@ -147,30 +187,73 @@ Optional:
 
 Parameter order must match the approved Meta template.
 
-## Outputs
+For complete field behavior and examples, see [Workflow usage](docs/workflow-usage.md) and [Examples](examples/README.md).
 
-Successful sends can return:
+## Success response
 
-- `success`
-- `acceptedByMeta`
-- `provider`
-- `operation`
-- `messageId`
-- `recipientPhoneNumber`
-- `providerStatus`
-- `templateName`
+A successful send returns `success=true` and `acceptedByMeta=true` after Meta accepts the API request and returns a WhatsApp message ID.
 
-When `continueOnError` is enabled, failures can additionally return:
+Example:
 
-- `errorCode`
-- `errorMessage`
-- `httpStatus`
-- `retryable`
-- `providerErrorType`
-- `providerErrorSubcode`
-- `providerTraceId`
+```json
+{
+  "success": true,
+  "acceptedByMeta": true,
+  "provider": "meta",
+  "operation": "SEND_TEXT",
+  "messageId": "wamid.example-message-id",
+  "recipientPhoneNumber": "15551234567",
+  "providerStatus": "accepted"
+}
+```
 
-A successful API response means Meta accepted the request. It does not guarantee final delivery. Delivery/read confirmation requires webhook handling, which is not yet implemented.
+For a template send, `templateName` is also returned.
+
+`acceptedByMeta=true` does **not** mean delivered or read. Delivery/read confirmation requires webhook handling, which is not currently implemented.
+
+## Error response
+
+When `continueOnError=false` or is omitted, validation/provider failures are thrown and stop the action.
+
+When `continueOnError=true`, the action returns `success=false` with structured error information instead of throwing.
+
+Example:
+
+```json
+{
+  "success": false,
+  "acceptedByMeta": false,
+  "provider": "meta",
+  "operation": "SEND_TEXT",
+  "errorCode": "WHATSAPP_NOT_CONFIGURED",
+  "errorMessage": "WhatsApp is not configured. Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in the app settings.",
+  "retryable": false
+}
+```
+
+Provider failures may additionally contain `httpStatus`, `providerErrorType`, `providerErrorSubcode` and `providerTraceId`.
+
+See [Troubleshooting](docs/troubleshooting.md) for the error catalogue and retry guidance.
+
+## Response contract
+
+| Field | Type | When populated |
+| --- | --- | --- |
+| `success` | boolean | Always when a result object is returned |
+| `acceptedByMeta` | boolean | Always when a result object is returned |
+| `provider` | string | Always when a result object is returned; currently `meta` |
+| `operation` | string | Always when a result object is returned |
+| `messageId` | string | Successful provider acceptance |
+| `recipientPhoneNumber` | string | Successful send; also on failures after recipient normalization succeeds |
+| `providerStatus` | string | Successful send when Meta returns a message status |
+| `templateName` | string | Template operation after template-name normalization succeeds |
+| `errorCode` | string | Structured failure with `continueOnError=true` |
+| `errorMessage` | string | Structured failure with `continueOnError=true` |
+| `httpStatus` | number | Provider failure when an HTTP status is available |
+| `retryable` | boolean | Structured failure with `continueOnError=true` |
+| `providerErrorType` | string | Meta failure when supplied by Meta |
+| `providerErrorSubcode` | number | Meta failure when supplied by Meta |
+| `providerTraceId` | string | Meta failure when supplied by Meta |
 
 ## Architecture
 
@@ -185,11 +268,22 @@ WhatsAppProvider interface
         |
         +---- MetaWhatsAppProvider (current)
         |
-        +---- Twilio provider (planned)
-        +---- other providers (planned)
+        +---- future provider implementations
 ```
 
-Provider-specific payloads, response parsing and errors should remain inside provider implementations. The Twenty workflow contract should stay provider-neutral where practical. See [Architecture](docs/architecture.md).
+Provider-specific authentication, payloads, response parsing and errors remain inside provider implementations. The Twenty workflow contract should stay provider-neutral where practical. See [Architecture](docs/architecture.md).
+
+## Developer workflow
+
+Run the package quality gates before submitting changes:
+
+```bash
+yarn lint
+yarn typecheck
+yarn test:unit
+```
+
+When changing workflow schemas, dynamic field handling, application configuration or provider execution, also perform a real Twenty runtime test. See [Development](docs/development.md).
 
 ## Security
 
@@ -197,6 +291,7 @@ Provider-specific payloads, response parsing and errors should remain inside pro
 - Use a dedicated Meta system-user token with minimum required permissions.
 - Rotate exposed or expired tokens immediately.
 - Never log authorization headers or access tokens.
+- Never publish real customer data in issues or examples.
 - Report security issues privately as described in `SECURITY.md`.
 
 ## Current limitations
@@ -211,7 +306,7 @@ Provider-specific payloads, response parsing and errors should remain inside pro
 
 Contributions are welcome. Read `CONTRIBUTING.md` before opening a pull request. Good contribution areas include provider implementations, additional WhatsApp message types, tests, documentation and Twenty compatibility fixes.
 
-While this app remains inside the Twenty monorepo, open provider proposals as regular GitHub issues. A dedicated provider-request issue template will be added at repository root after migration to the standalone `twenty-whatsapp` repository.
+Use GitHub Issues in `nextpagetech/twenty-crm-whatsapp` for reproducible bugs, feature requests and provider proposals that are not security-sensitive.
 
 ## Professional support & customization
 
@@ -222,10 +317,8 @@ Website: https://www.nextpagetechnologies.com
 Email: hello@nextpagetechnologies.com  
 WhatsApp / Phone: +91 8187030758
 
-Community bugs and feature requests should still be opened publicly through GitHub Issues whenever they are not security-sensitive.
-
 ## License and attribution
 
-This WhatsApp app package is licensed under **Apache-2.0**. The surrounding `twentycrm-npt` repository contains Twenty CRM source code under its own licensing terms. This package will later be moved to its dedicated repository after the hardening and verification phase.
+The independently authored WhatsApp app package is licensed under **Apache-2.0** as described by its package-local `LICENSE` file. The surrounding Twenty CRM repository contains upstream Twenty source under its own licensing terms; the entire repository must not be treated as Apache-2.0.
 
 Twenty CRM is developed by Twenty. WhatsApp and Meta are trademarks of Meta Platforms, Inc. This integration is independently developed and maintained by Next Page Technologies Pvt. Ltd. and is not presented as an official Twenty or Meta product.

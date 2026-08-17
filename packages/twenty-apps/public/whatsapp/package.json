@@ -8,14 +8,14 @@
     "email": "hello@nextpagetechnologies.com",
     "url": "https://www.nextpagetechnologies.com"
   },
-  "homepage": "https://www.nextpagetechnologies.com",
+  "homepage": "https://github.com/nextpagetech/twenty-crm-whatsapp/tree/main/packages/twenty-apps/public/whatsapp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nextpagetech/twentycrm-npt.git",
+    "url": "https://github.com/nextpagetech/twenty-crm-whatsapp.git",
     "directory": "packages/twenty-apps/public/whatsapp"
   },
   "bugs": {
-    "url": "https://github.com/nextpagetech/twentycrm-npt/issues"
+    "url": "https://github.com/nextpagetech/twenty-crm-whatsapp/issues"
   },
   "engines": {
     "node": "^24.5.0",
